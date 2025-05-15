@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Bus Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+        .info-panel {
+            padding: 10px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .status {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        <div class="status">Waiting for bus location...</div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBi1X1_OfrvjsLQ9T2mVbpGZC3jXAUjXag"></script>
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyANcUlALl1KCLcpPA8wsrZQ4HDyH9LRptM",
+            authDomain: "bustracker-b57b4.firebaseapp.com",
+            databaseURL: "https://bustracker-b57b4-default-rtdb.firebaseio.com",
+            projectId: "bustracker-b57b4",
+            storageBucket: "bustracker-b57b4.firebasestorage.app",
+            messagingSenderId: "1085646349048",
+            appId: "1:1085646349048:web:5f8c3b7aef4fd8f6d4510d",
+            measurementId: "G-N86R80DGGV"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const locationRef = ref(db, 'bus/location');
+        const statusDiv = document.querySelector('.status');
+
+        // Initialize map
+        const map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 15,
+            center: { lat: 0, lng: 0 },
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: true
+        });
+
+        // Create marker
+        const marker = new google.maps.Marker({
+            map: map,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: "#FF0000",
+                fillOpacity: 1,
+                strokeColor: "#FFFFFF",
+                strokeWeight: 2
+            }
+        });
+
+        // Create info window
+        const infoWindow = new google.maps.InfoWindow();
+
+        // Listen for location updates
+        onValue(locationRef, snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                const pos = { lat: data.lat, lng: data.lng };
+                
+                // Update marker position
+                marker.setPosition(pos);
+                
+                // Center map on marker
+                map.setCenter(pos);
+
+                // Update info window
+                const time = new Date(data.timestamp).toLocaleTimeString();
+                const content = `
+                    <div>
+                        <strong>Last Update:</strong> ${time}<br>
+                        <strong>Accuracy:</strong> ${Math.round(data.accuracy)}m
+                    </div>
+                `;
+                infoWindow.setContent(content);
+                infoWindow.open(map, marker);
+
+                // Update status
+                statusDiv.textContent = `Last updated: ${time}`;
+            }
+        }, error => {
+            statusDiv.textContent = `Error: ${error.message}`;
+        });
+    </script>
+</body>
+</html> 
